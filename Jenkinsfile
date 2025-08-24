@@ -2,68 +2,60 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "e-commerce-app"
-        DEV_REPO = "kamalesh0610/dev"
-        PROD_REPO = "kamalesh0610/prod"
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-cred')
+        DEV_IMAGE = "kamalesh0610/dev"
+        PROD_IMAGE = "kamalesh0610/prod"
     }
 
     triggers {
-        githubPush() // auto-trigger on push
+        githubPush()
     }
 
     stages {
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
-                git branch: "${env.BRANCH_NAME}", url: 'https://github.com/Kamalesh0610/e-commerce-app.git'
+                git branch: env.BRANCH_NAME, url: 'https://github.com/Kamalesh0610/e-commerce-app.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    VERSION = env.BUILD_NUMBER
-
                     if (env.BRANCH_NAME == "dev") {
-                        REPO = DEV_REPO
-                    } else if (env.BRANCH_NAME == "main") {
-                        REPO = PROD_REPO
-                    } else {
-                        error "Unsupported branch: ${env.BRANCH_NAME}"
+                        sh "docker build -t ${DEV_IMAGE}:${BUILD_NUMBER} ."
+                    } else if (env.BRANCH_NAME == "master") {
+                        sh "docker build -t ${PROD_IMAGE}:${BUILD_NUMBER} ."
                     }
-
-                    sh """
-                      docker build -t ${IMAGE_NAME}:${VERSION} .
-                      docker tag ${IMAGE_NAME}:${VERSION} ${REPO}:${VERSION}
-                      docker tag ${IMAGE_NAME}:${VERSION} ${REPO}:latest
-                    """
                 }
             }
         }
 
         stage('Push to DockerHub') {
             steps {
-                withDockerRegistry([credentialsId: 'dockerhub-creds', url: 'https://index.docker.io/v1/']) {
-                    sh """
-                      docker push ${REPO}:${VERSION}
-                      docker push ${REPO}:latest
-                    """
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', DOCKERHUB_CREDENTIALS) {
+                        if (env.BRANCH_NAME == "dev") {
+                            sh "docker push ${DEV_IMAGE}:${BUILD_NUMBER}"
+                            sh "docker tag ${DEV_IMAGE}:${BUILD_NUMBER} ${DEV_IMAGE}:latest"
+                            sh "docker push ${DEV_IMAGE}:latest"
+                        } else if (env.BRANCH_NAME == "master") {
+                            sh "docker push ${PROD_IMAGE}:${BUILD_NUMBER}"
+                            sh "docker tag ${PROD_IMAGE}:${BUILD_NUMBER} ${PROD_IMAGE}:latest"
+                            sh "docker push ${PROD_IMAGE}:latest"
+                        }
+                    }
                 }
             }
         }
 
-        stage('Deploy to AWS') {
-            when { branch 'main' } // deploy only from master/main
+        stage('Deploy') {
             steps {
-                sshagent(['aws-ec2-key']) {
-                    sh '''
-                      ssh -o StrictHostKeyChecking=no ubuntu@<EC2_PUBLIC_IP> "
-                        docker pull ${REPO}:latest &&
-                        docker stop ecommerce || true &&
-                        docker rm ecommerce || true &&
-                        docker run -d --name ecommerce -p 80:80 ${REPO}:latest
-                      "
-                    '''
+                script {
+                    if (env.BRANCH_NAME == "dev") {
+                        echo "✅ Deploying to DEV environment..."
+                    } else if (env.BRANCH_NAME == "master") {
+                        echo "🚀 Deploying to PROD environment..."
+                    }
                 }
             }
         }
