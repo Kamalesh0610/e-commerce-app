@@ -52,9 +52,9 @@ pipeline {
             steps {
                 script {
                     if (env.BRANCH_NAME == "dev") {
-                        echo "✅ Deploying to DEV environment..."
+                        echo "Deploying to DEV environment..."
                     } else if (env.BRANCH_NAME == "master") {
-                        echo "🚀 Deploying to PROD environment..."
+                        echo "Deploying to PROD environment..."
                     }
                 }
             }
