@@ -33,7 +33,7 @@ pipeline {
         stage('Push to DockerHub') {
             steps {
                 script {
-                    docker.withRegistry('https://index.docker.io/v1/', DOCKERHUB_CREDENTIALS) {
+                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-cred') {
                         if (env.BRANCH_NAME == "dev") {
                             sh "docker push ${DEV_IMAGE}:${BUILD_NUMBER}"
                             sh "docker tag ${DEV_IMAGE}:${BUILD_NUMBER} ${DEV_IMAGE}:latest"
