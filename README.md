@@ -75,7 +75,7 @@ This project demonstrates deploying a React application to a production-ready st
 - **Docker Images:**
   - `kamalesh0610/dev`
   - `kamalesh0610/prod`
-- **Screenshots:** See [`screenshots/`](screenshots/) folder for:
+- **Screenshots:** See [`screenshots/`](Screenshots/) folder for:
   - Jenkins (login, config, build steps)
   - AWS (EC2 console, SG configs)
   - Docker Hub repos with image tags
